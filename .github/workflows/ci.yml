@@ -1,0 +1,50 @@
+# Lint, type-check and production build of the admin placeholder.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: admin
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: admin
+      # Apps link to ../shared packages (link: dependencies) until they are published.
+      - uses: actions/checkout@v5
+        with:
+          repository: bibiyo21/mediconnect-shared
+          path: shared
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.21.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: |
+            shared/pnpm-lock.yaml
+            admin/pnpm-lock.yaml
+      - name: Build shared packages
+        working-directory: shared
+        run: pnpm install --frozen-lockfile && pnpm build
+      - name: Install
+        working-directory: admin
+        run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm build
