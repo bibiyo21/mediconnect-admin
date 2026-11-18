@@ -1,0 +1,9 @@
+@import '@mediconnect/design-system/tokens.css';
+@import '@mediconnect/design-system/base.css';
+
+/*
+ * Admin foundation only: tokens and base elements come from the shared design system.
+ * Add console layout (sidebar, tables, dialogs) here using var(--…) tokens; never introduce
+ * a separate palette, type scale or spacing scale (docs/design-system.md).
+ */
+.page { max-width: var(--size-form-max); margin: 15vh auto 0; padding: 0 var(--space-4); }

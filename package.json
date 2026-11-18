@@ -15,6 +15,7 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@mediconnect/design-system": "link:../shared/packages/design-system",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

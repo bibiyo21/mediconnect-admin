@@ -1,7 +1,13 @@
+import { resolve } from 'node:path';
 import type { NextConfig } from 'next';
+
+// In the sibling-checkout layout, @mediconnect/design-system is a symlink into ../shared. Let Turbopack follow it.
+const sharedCheckout = resolve(process.cwd(), '../shared');
+const turbopackAdditionalRoots = { sharedPackages: { path: sharedCheckout, ignoreIfMissing: true } };
 
 /** Back office: never indexed, never cached, no framing. */
 const nextConfig: NextConfig = {
+  experimental: { turbopackAdditionalRoots },
   poweredByHeader: false,
   async headers() {
     return [

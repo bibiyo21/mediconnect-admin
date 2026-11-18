@@ -185,6 +185,9 @@ importers:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
     devDependencies:
+      '@mediconnect/design-system':
+        specifier: link:../shared/packages/design-system
+        version: link:../shared/packages/design-system
       '@types/node':
         specifier: ^20
         version: 20.19.43
