@@ -46,7 +46,11 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
     <StepUpProvider>
       <div className="console">
         <header className="console__header">
-          <span className="console__brand">MediConnect <span className="muted">Console</span></span>
+          <span className="console__brand">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static SVG; next/image adds nothing here */}
+            <img src="/assets/brand/logo-mark.svg" alt="" width={28} height={28} className="brand-mark" />
+            <span>MediConnect <span className="muted">Console</span></span>
+          </span>
           <nav aria-label="Main" className="console__nav">
             {items.map((n) => {
               const current = n.href === '/' ? pathname === '/' : pathname.startsWith(n.href);

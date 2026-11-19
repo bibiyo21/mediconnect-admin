@@ -26,7 +26,7 @@ export default function Overview() {
         <div className="stats">
           <Card title="Accounts"><p className="stat">{data.users.total}</p><p className="muted">{data.users.active} active · {data.users.suspended} suspended</p></Card>
           <Card title="Pending deletion"><p className="stat">{data.users.pending_deletion}</p><p className="muted">Within the 30-day grace period</p></Card>
-          <Card title="Patients"><p className="stat">{data.patients}</p><p className="muted">{data.dependents} family members managed by guardians</p></Card>
+          <Card title="Patients"><p className="stat">{data.patients}</p><p className="muted">{data.dependents} {data.dependents === 1 ? 'family member' : 'family members'} managed by guardians</p></Card>
           <Card title="Security events"><p className="stat">{data.security_events_24h}</p><p className="muted">In the last 24 hours</p></Card>
         </div>
       ) : null}

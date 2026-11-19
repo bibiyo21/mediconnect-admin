@@ -44,6 +44,8 @@ export default function SignIn() {
   return (
     <main id="content" className="auth">
       <form className="auth__card stack" onSubmit={submit} noValidate>
+        {/* eslint-disable-next-line @next/next/no-img-element -- static SVG; next/image adds nothing here */}
+        <img src="/assets/brand/logo-mark.svg" alt="" width={56} height={56} className="brand-mark auth__logo" />
         <h1>MediConnect Console</h1>
         <p className="muted">Sign in with your staff account. You will be asked for a code from your authenticator app.</p>
         {error && !fieldError(error, 'identifier') && !fieldError(error, 'password') ? <Notice tone="error">{userMessage(error)}</Notice> : null}
