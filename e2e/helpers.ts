@@ -142,8 +142,20 @@ export async function mockApi(page: Page, { session = 'signedIn', stepUpFirst = 
     }],
     holidays: [{ id: 'h1', clinic_location_id: null, date: '2026-12-25', name: 'Christmas Day', is_closed: true, special_opens_at: null, special_closes_at: null }],
     members: [{ id: 'm1', user_id: 'u1', name: 'Cora Reyes', email: 'clinic.staff@example.test', mobile_masked: null, member_role: 'CLINIC_STAFF', clinic_location_id: null, joined_at: '2026-11-18T02:00:00Z' }],
-    abilities: { update: canManage, manage_hours: canManage, manage_staff: canManage },
+    abilities: { update: canManage, manage_hours: canManage, manage_staff: canManage, manage_doctors: canManage },
   };
+  let assignments = [{
+    id: 'as1', status: 'ACTIVE', doctor_profile_id: 'dp1', doctor_display_name: 'Dr. Ana Reyes', clinic_id: clinic.id, clinic_name: clinic.name,
+    clinic_location_id: clinic.locations[0].id, location_name: 'Makati branch', location_city: 'Makati', effective_from: '2026-11-19T02:00:00Z' as string | null, effective_until: null, end_reason: null, requested_at: '2026-11-18T02:00:00Z',
+  }];
+  await page.route(/\/api\/v1\/clinics\/[^/]+\/doctor-assignments$/, (r) => r.fulfill(ok(assignments)));
+  await page.route(/\/api\/v1\/clinics\/[^/]+\/doctors$/, (r) => {
+    const { prc_license_number } = r.request().postDataJSON() as { prc_license_number: string };
+    if (prc_license_number === '9999999') return r.fulfill(json(422, { success: false, message: 'Validation failed.', errors: { prc_license_number: ['No verified doctor on MediConnect has this licence number.'] }, code: 'VALIDATION_FAILED' }));
+    const created = { ...assignments[0], id: 'as2', status: 'PENDING', doctor_display_name: 'Dr. Ben Cruz', effective_from: null, requested_at: '2026-11-20T02:00:00Z' };
+    assignments = [...assignments, created];
+    return r.fulfill(json(201, { success: true, data: created, meta: {}, message: null }));
+  });
   const summary = { id: clinic.id, name: clinic.name, slug: clinic.slug, status: 'ACTIVE', organization: { id: 'o1', name: 'Santos Medical Group', organization_type: 'CLINIC_GROUP' }, location_count: 1, cities: ['Makati'] };
   await page.route(/\/api\/v1\/admin\/clinics(\?.*)?$/, (r) => r.request().method() === 'POST'
     ? r.fulfill(json(201, { success: true, data: { ...clinic, id: 'new-clinic' }, meta: {}, message: null }))

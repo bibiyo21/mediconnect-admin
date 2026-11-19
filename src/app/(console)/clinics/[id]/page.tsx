@@ -31,7 +31,7 @@ export default function ClinicPage() {
       <p><Link href="/clinics">← All clinics</Link></p>
       <PageHeader title={shown.name} description={`${shown.organization.name} · ${shown.organization.organization_type.replace('_', ' ').toLowerCase()}`} actions={shown.status === 'ACTIVE' ? <Badge tone="success">Active</Badge> : <Badge>Inactive</Badge>} />
       {notice ? <Notice tone="success">{notice}</Notice> : null}
-      {!can.update && !can.manage_hours && !can.manage_staff ? <Notice>You can view this clinic. Changes are made by its managers.</Notice> : null}
+      {!can.update && !can.manage_hours && !can.manage_staff && !can.manage_doctors ? <Notice>You can view this clinic. Changes are made by its managers.</Notice> : null}
 
       <ClinicDetails clinic={shown} onDone={done} />
       {shown.locations.length === 0 ? <StateMessage state="empty" message="This clinic has no locations yet." /> : null}
@@ -39,6 +39,7 @@ export default function ClinicPage() {
       {can.update ? <NewLocation clinicId={shown.id} onDone={done} /> : null}
       <Holidays clinic={shown} onDone={done} />
       <Staff clinic={shown} onDone={done} />
+      {can.manage_doctors ? <Doctors clinic={shown} /> : null}
     </>
   );
 }
@@ -314,6 +315,70 @@ function Staff({ clinic, onDone }: { clinic: ClinicDetail; onDone: Done }) {
           <Button type="submit" variant="secondary" loading={busy === 'add'}>Add staff member</Button>
         </form>
       ) : null}
+    </Card>
+  );
+}
+
+/**
+ * Doctors at this clinic (increment 2.10). A verified doctor is invited by
+ * PRC licence number and must accept in the app; fees are set by the doctor.
+ */
+function Doctors({ clinic }: { clinic: ClinicDetail }) {
+  const { data, error: loadError, loading, reload } = useLoad(async () => unwrap(await api.GET('/clinics/{clinicId}/doctor-assignments', { params: { path: { clinicId: clinic.id } } })), [clinic.id]);
+  const [licence, setLicence] = useState('');
+  const [locationId, setLocationId] = useState(clinic.locations[0]?.id ?? '');
+  const [reasons, setReasons] = useState<Record<string, string>>({});
+  const [message, setMessage] = useState<string | null>(null);
+  const { error, busy, run } = useAction();
+
+  const invite = (event: FormEvent) => {
+    event.preventDefault();
+    setMessage(null);
+    void run('invite', async () => {
+      const a = unwrap(await api.POST('/clinics/{clinicId}/doctors', { params: { path: { clinicId: clinic.id } }, body: { clinic_location_id: locationId, prc_license_number: licence.trim() } }));
+      setLicence('');
+      setMessage(`Invitation sent to ${a.doctor_display_name}. They need to accept it in the MediConnect app.`);
+      reload();
+    });
+  };
+  const end = (assignmentId: string, label: string) => void run(assignmentId, async () => {
+    unwrap(await api.POST('/clinics/{clinicId}/doctor-assignments/{assignmentId}/end', { params: { path: { clinicId: clinic.id, assignmentId } }, body: { reason: reasons[assignmentId] ?? '' } }));
+    setMessage(`${label} no longer practises here. Their services at this location have ended.`);
+    reload();
+  });
+
+  return (
+    <Card title="Doctors">
+      {message ? <Notice tone="success">{message}</Notice> : null}
+      {error && !fieldError(error, 'prc_license_number') && !fieldError(error, 'reason') ? <Notice tone="error">{userMessage(error)}</Notice> : null}
+      {loading && !data ? <StateMessage state="loading" message="Loading doctors" /> : null}
+      {loadError ? <StateMessage state="error" message={userMessage(loadError)} onRetry={reload} /> : null}
+      {data && data.length === 0 ? <p className="muted">No doctors yet. Invite one below.</p> : null}
+      {data && data.length > 0 ? (
+        <ul className="settings-list">
+          {data.map((a) => (
+            <li key={a.id} className="assignment">
+              <span>
+                {a.doctor_display_name} <Badge tone={a.status === 'ACTIVE' ? 'success' : 'info'}>{a.status === 'ACTIVE' ? 'Practising here' : 'Invitation sent'}</Badge>
+                <span className="muted small"> · {a.location_name}{a.effective_from ? ` · since ${formatDateTime(a.effective_from)}` : ` · invited ${formatDateTime(a.requested_at)}`}</span>
+              </span>
+              <span className="inline-form">
+                <TextField label={`Reason (${a.doctor_display_name})`} value={reasons[a.id] ?? ''} onChange={(e) => setReasons({ ...reasons, [a.id]: e.target.value })} error={busy === null ? fieldError(error, 'reason') : undefined} />
+                <Button variant="ghost" loading={busy === a.id} onClick={() => end(a.id, a.doctor_display_name)}>{a.status === 'ACTIVE' ? 'End assignment' : 'Withdraw invitation'}</Button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {clinic.locations.length > 0 ? (
+        <form className="filters" onSubmit={invite}>
+          <TextField label="Doctor's PRC licence number" inputMode="numeric" value={licence} onChange={(e) => setLicence(e.target.value)} error={fieldError(error, 'prc_license_number')} required />
+          <SelectField label="Location" value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+            {clinic.locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </SelectField>
+          <Button type="submit" variant="secondary" loading={busy === 'invite'}>Invite doctor</Button>
+        </form>
+      ) : <p className="muted">Add a location before inviting doctors.</p>}
     </Card>
   );
 }

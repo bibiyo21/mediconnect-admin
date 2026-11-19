@@ -214,3 +214,18 @@ test('a medical admin reviews a doctor: start, accept the PRC ID, then verify af
   await expect(page.getByText('Verified. The doctor was notified.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Activate doctor' })).toBeVisible();
 });
+
+test('a clinic manager invites a doctor by licence number', async ({ page }) => {
+  await mockApi(page, { roles: ['CLINIC_MANAGER'] });
+  await page.goto('/clinics/01a1ec01-0000-7000-8000-00000000c001');
+  await expect(page.getByText('Practising here')).toBeVisible({ timeout: 60_000 });
+
+  await page.getByLabel("Doctor's PRC licence number").fill('9999999');
+  await page.getByRole('button', { name: 'Invite doctor' }).click();
+  await expect(page.getByText('No verified doctor on MediConnect has this licence number.')).toBeVisible();
+
+  await page.getByLabel("Doctor's PRC licence number").fill('7654321');
+  await page.getByRole('button', { name: 'Invite doctor' }).click();
+  await expect(page.getByText('Invitation sent to Dr. Ben Cruz.', { exact: false })).toBeVisible();
+  await expect(page.getByText('Invitation sent', { exact: true })).toBeVisible();
+});
