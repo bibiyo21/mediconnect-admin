@@ -29,6 +29,7 @@ export default function DoctorReview() {
   const [selected, setSelected] = useState<string[]>([]);
   const [verifyReason, setVerifyReason] = useState('');
   const [rejectReason, setRejectReason] = useState('');
+  const [activateReason, setActivateReason] = useState('');
   const [moreDocuments, setMoreDocuments] = useState(true);
 
   if (loading && !doctor) return <StateMessage state="loading" message="Loading application" />;
@@ -86,7 +87,7 @@ export default function DoctorReview() {
     event.preventDefault();
     void act('verify', 'Verified. The doctor was notified.', () => runWithStepUp(async () => {
       await prepareWrites();
-      return unwrap(await api.POST('/admin/doctors/{doctorId}/verify', { params: { path }, body: { reason: verifyReason || null } }));
+      return unwrap(await api.POST('/admin/doctors/{doctorId}/verify', { params: { path }, body: { reason: verifyReason } }));
     }));
   };
 
@@ -98,10 +99,13 @@ export default function DoctorReview() {
     }));
   };
 
-  const activate = () => act('activate', 'Active. The doctor was notified.', () => runWithStepUp(async () => {
-    await prepareWrites();
-    return unwrap(await api.POST('/admin/doctors/{doctorId}/activate', { params: { path }, body: {} }));
-  }));
+  const activate = (event: FormEvent) => {
+    event.preventDefault();
+    void act('activate', 'Active. The doctor was notified.', () => runWithStepUp(async () => {
+      await prepareWrites();
+      return unwrap(await api.POST('/admin/doctors/{doctorId}/activate', { params: { path }, body: { reason: activateReason } }));
+    }));
+  };
 
   const selfReported = doctor.specialties.filter((s) => s.verification_status === 'SELF_REPORTED');
   const fieldErrors = ['reason', 'credentials', 'prc_license_number', 'specialty_ids', 'note'].some((f) => fieldError(actionError, f));
@@ -199,7 +203,7 @@ export default function DoctorReview() {
           <Card title="Verify">
             <form className="stack" onSubmit={verify}>
               <p className="muted">Needs an accepted PRC ID. The doctor is notified. You will be asked for an authenticator code.</p>
-              <TextField label="Note for the audit log (optional)" value={verifyReason} onChange={(e) => setVerifyReason(e.target.value)} />
+              <TextField label="Reason for the audit log" hint="For example: licence checked on the PRC register" value={verifyReason} onChange={(e) => setVerifyReason(e.target.value)} error={fieldError(actionError, 'reason')} required minLength={5} />
               <div><Button type="submit" loading={busy === 'verify'}>Verify doctor</Button></div>
             </form>
           </Card>
@@ -215,8 +219,11 @@ export default function DoctorReview() {
 
       {status === 'VERIFIED' ? (
         <Card title="Activate">
-          <p className="muted">An active doctor can be listed and booked once their services and schedules are set up. You will be asked for an authenticator code.</p>
-          <div><Button onClick={() => void activate()} loading={busy === 'activate'}>Activate doctor</Button></div>
+          <form className="stack" onSubmit={activate}>
+            <p className="muted">An active doctor can be listed and booked once their services and schedules are set up. You will be asked for an authenticator code.</p>
+            <TextField label="Reason for the audit log" value={activateReason} onChange={(e) => setActivateReason(e.target.value)} error={fieldError(actionError, 'reason')} required minLength={5} />
+            <div><Button type="submit" loading={busy === 'activate'}>Activate doctor</Button></div>
+          </form>
         </Card>
       ) : null}
 

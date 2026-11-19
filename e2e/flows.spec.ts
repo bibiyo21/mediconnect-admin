@@ -205,6 +205,7 @@ test('a medical admin reviews a doctor: start, accept the PRC ID, then verify af
   await page.getByRole('button', { name: 'Accept', exact: true }).click();
   await expect(page.getByText('Document accepted.')).toBeVisible();
 
+  await page.getByLabel('Reason for the audit log').fill('Licence checked on the register');
   await page.getByRole('button', { name: 'Verify doctor' }).click();
   const dialog = page.getByRole('dialog', { name: 'Confirm it is you' });
   await expect(dialog).toBeVisible();
