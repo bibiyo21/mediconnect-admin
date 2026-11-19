@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { mockApi, users } from './helpers';
+import { DOCTOR_ID, mockApi, users } from './helpers';
 
 test('sign in: wrong password, then password and authenticator code', async ({ page }) => {
   await mockApi(page, { session: 'signedOut' });
@@ -188,4 +188,24 @@ test('an ADMIN adds a clinic with its organization and first location', async ({
     name: 'Reyes Clinic',
     location: { name: 'Quezon City branch', address_line1: '5 Kalayaan Ave', city: 'Quezon City', phone: null },
   });
+});
+
+test('a medical admin reviews a doctor: start, accept the PRC ID, then verify after a fresh code', async ({ page }) => {
+  await mockApi(page, { roles: ['MEDICAL_ADMIN'], stepUpFirst: true });
+  await page.goto(`/doctors/${DOCTOR_ID}`);
+  await expect(page.getByRole('heading', { level: 1, name: 'Dr. Ana Reyes' })).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText('Blocked: malware found')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Start review' }).click();
+  await expect(page.getByText('Review started. Check each document, then decide.')).toBeVisible();
+  await page.getByRole('button', { name: 'Accept', exact: true }).click();
+  await expect(page.getByText('Document accepted.')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Verify doctor' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Confirm it is you' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel('6-digit code').fill('123456');
+  await dialog.getByRole('button', { name: 'Verify', exact: true }).click();
+  await expect(page.getByText('Verified. The doctor was notified.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Activate doctor' })).toBeVisible();
 });

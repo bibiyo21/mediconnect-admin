@@ -27,6 +27,22 @@ export const users = [
   { id: '01a1ec01-0000-7000-8000-00000000b003', email: 'clinic.staff@example.test', mobile_masked: null, status: 'ACTIVE', roles: ['CLINIC_STAFF'], first_name: 'Cora', last_name: 'Reyes', mfa_enrolled: false, deletion_requested_at: '2026-11-18T02:00:00Z', last_login_at: '2026-11-18T02:00:00Z', created_at: '2026-11-15T01:00:00Z' },
 ];
 
+
+export const DOCTOR_ID = '01a1ed01-0000-7000-8000-00000000d001';
+const doctorBase = {
+  id: DOCTOR_ID, display_name: 'Dr. Ana Reyes', professional_title: 'MD', biography: null, prc_license_number: '0123456',
+  license_verification_status: 'NOT_VERIFIED', medical_school: 'Example College of Medicine', years_experience: 8, profile_completeness: 80,
+  specialties: [{ id: '01a1ed01-0000-7000-8000-00000000e001', specialty_name: 'Pediatrics', subspecialty_name: null, is_primary: true, board_certified: true, verification_status: 'SELF_REPORTED' }],
+  credentials: [
+    { id: '01a1ed01-0000-7000-8000-00000000f001', credential_type: 'PRC_ID', original_filename: 'prc-id.pdf', mime_type: 'application/pdf', size_bytes: 182_000, scan_status: 'CLEAN', status: 'SUBMITTED', review_note: null as string | null, expires_on: '2028-05-17' as string | null, downloadable: true, uploaded_at: '2026-11-19T02:00:00Z' },
+    { id: '01a1ed01-0000-7000-8000-00000000f002', credential_type: 'OTHER', original_filename: 'certificate.pdf', mime_type: 'application/pdf', size_bytes: 52_000, scan_status: 'QUARANTINED', status: 'SUBMITTED', review_note: null as string | null, expires_on: null as string | null, downloadable: false, uploaded_at: '2026-11-19T02:05:00Z' },
+  ],
+  verification_history: [
+    { from_status: null, to_status: 'REGISTERED', reason: null, occurred_at: '2026-11-18T09:00:00Z' },
+    { from_status: 'REGISTERED', to_status: 'DOCUMENTS_SUBMITTED', reason: null, occurred_at: '2026-11-19T02:10:00Z' },
+  ],
+};
+
 type Session = 'signedIn' | 'signedOut' | 'mfaSetup';
 
 /**
@@ -150,5 +166,24 @@ export async function mockApi(page: Page, { session = 'signedIn', stepUpFirst = 
     if (needsStepUp(r)) return;
     const key = r.request().url().split('/').pop();
     return r.fulfill(ok({ key, value: (r.request().postDataJSON() as { value: unknown }).value }));
+  });
+
+  let doctor = { ...doctorBase, onboarding_status: 'DOCUMENTS_SUBMITTED' as string };
+  await page.route(/\/api\/v1\/admin\/doctors(\?.*)?$/, (r) => r.fulfill(ok([{ id: DOCTOR_ID, display_name: doctor.display_name, professional_title: 'MD', onboarding_status: doctor.onboarding_status, submitted_at: '2026-11-19T02:10:00Z', document_count: 2, profile_completeness: 80 }], { page: 1, per_page: 25, total: 1, last_page: 1 })));
+  await page.route(/\/api\/v1\/admin\/doctors\/[^/]+$/, (r) => r.fulfill(ok(doctor)));
+  await page.route(/\/api\/v1\/admin\/doctors\/[^/]+\/start-review$/, (r) => {
+    doctor = { ...doctor, onboarding_status: 'UNDER_REVIEW', verification_history: [...doctor.verification_history, { from_status: 'DOCUMENTS_SUBMITTED', to_status: 'UNDER_REVIEW', reason: null, occurred_at: '2026-11-19T03:00:00Z' }] };
+    return r.fulfill(ok(doctor));
+  });
+  await page.route(/\/api\/v1\/admin\/doctors\/[^/]+\/credentials\/[^/]+\/review$/, (r) => {
+    const credentialId = r.request().url().split('/').at(-2);
+    const { decision, note } = r.request().postDataJSON() as { decision: string; note: string | null };
+    doctor = { ...doctor, credentials: doctor.credentials.map((c) => (c.id === credentialId ? { ...c, status: decision, review_note: note } : c)) };
+    return r.fulfill(ok(doctor.credentials.find((c) => c.id === credentialId)));
+  });
+  await page.route(/\/api\/v1\/admin\/doctors\/[^/]+\/verify$/, (r) => {
+    if (needsStepUp(r)) return;
+    doctor = { ...doctor, onboarding_status: 'VERIFIED', license_verification_status: 'VERIFIED', verification_history: [...doctor.verification_history, { from_status: 'UNDER_REVIEW', to_status: 'VERIFIED', reason: null, occurred_at: '2026-11-19T03:10:00Z' }] };
+    return r.fulfill(ok(doctor));
   });
 }

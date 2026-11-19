@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { mockApi, users } from './helpers';
+import { DOCTOR_ID, mockApi, users } from './helpers';
 
 /**
  * WIP screenshots of the real running admin console (mocked API fixtures only,
@@ -17,6 +17,8 @@ const shots = [
   { feature: 'clinics', name: 'clinics-list', path: '/clinics', heading: 'Clinics' },
   { feature: 'clinics', name: 'clinic-manage', path: '/clinics/01a1ec01-0000-7000-8000-00000000c001', heading: 'Santos Family Clinic', roles: ['CLINIC_MANAGER'] },
   { feature: 'admin', name: 'admin-specialties', path: '/specialties', heading: 'Specialties', roles: ['MEDICAL_ADMIN'] },
+  { feature: 'doctors', name: 'admin-doctor-queue', path: '/doctors', heading: 'Doctor verification', roles: ['MEDICAL_ADMIN'] },
+  { feature: 'doctors', name: 'admin-doctor-review', path: `/doctors/${DOCTOR_ID}`, heading: 'Dr. Ana Reyes', roles: ['MEDICAL_ADMIN'] },
 ];
 
 for (const s of shots) {
