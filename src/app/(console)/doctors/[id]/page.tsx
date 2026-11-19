@@ -108,7 +108,7 @@ export default function DoctorReview() {
   };
 
   const selfReported = doctor.specialties.filter((s) => s.verification_status === 'SELF_REPORTED');
-  const fieldErrors = ['reason', 'credentials', 'prc_license_number', 'specialty_ids', 'note'].some((f) => fieldError(actionError, f));
+  const fieldErrors = ['reason', 'credentials', 'prc_license_number', 'specialty_ids', 'note', 'services'].some((f) => fieldError(actionError, f));
 
   return (
     <>
@@ -119,7 +119,7 @@ export default function DoctorReview() {
         actions={<Badge tone={ONBOARDING_TONES[status] ?? 'neutral'}>{ONBOARDING_LABELS[status] ?? status}</Badge>}
       />
       {done ? <Notice tone="success">{done}</Notice> : null}
-      {actionError ? <Notice tone="error">{fieldErrors ? (fieldError(actionError, 'credentials') ?? fieldError(actionError, 'prc_license_number') ?? fieldError(actionError, 'specialty_ids') ?? fieldError(actionError, 'note') ?? userMessage(actionError)) : userMessage(actionError)}</Notice> : null}
+      {actionError ? <Notice tone="error">{fieldErrors ? (fieldError(actionError, 'credentials') ?? fieldError(actionError, 'services') ?? fieldError(actionError, 'prc_license_number') ?? fieldError(actionError, 'specialty_ids') ?? fieldError(actionError, 'note') ?? userMessage(actionError)) : userMessage(actionError)}</Notice> : null}
 
       {status === 'DOCUMENTS_SUBMITTED' ? (
         <Card title="Start the review">
@@ -220,7 +220,7 @@ export default function DoctorReview() {
       {status === 'VERIFIED' ? (
         <Card title="Activate">
           <form className="stack" onSubmit={activate}>
-            <p className="muted">An active doctor can be listed and booked once their services and schedules are set up. You will be asked for an authenticator code.</p>
+            <p className="muted">The doctor needs at least one active service (online, or at a clinic where they practise). Once active, they appear in the public directory. You will be asked for an authenticator code.</p>
             <TextField label="Reason for the audit log" value={activateReason} onChange={(e) => setActivateReason(e.target.value)} error={fieldError(actionError, 'reason')} required minLength={5} />
             <div><Button type="submit" loading={busy === 'activate'}>Activate doctor</Button></div>
           </form>
