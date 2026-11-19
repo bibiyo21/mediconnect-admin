@@ -23,7 +23,10 @@ interface SessionValue {
 const Ctx = createContext<SessionValue | null>(null);
 
 /** Roles that may use the console (the API enforces each permission again). */
-export const CONSOLE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'MEDICAL_ADMIN', 'SUPPORT_AGENT', 'FINANCE_OFFICER', 'MODERATOR'];
+export const CONSOLE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'MEDICAL_ADMIN', 'SUPPORT_AGENT', 'FINANCE_OFFICER', 'MODERATOR', 'CLINIC_MANAGER', 'CLINIC_STAFF'];
+
+/** Roles that see the platform-wide admin sections (the rest work inside their clinics). */
+export const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'MEDICAL_ADMIN', 'SUPPORT_AGENT', 'FINANCE_OFFICER', 'MODERATOR'];
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>('loading');

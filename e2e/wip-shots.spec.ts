@@ -14,6 +14,8 @@ const shots = [
   { feature: 'admin', name: 'admin-user-detail', path: `/users/${users[0].id}`, heading: 'Ana Santos' },
   { feature: 'admin', name: 'admin-audit-logs', path: '/audit-logs', heading: 'Audit logs' },
   { feature: 'admin', name: 'admin-settings', path: '/settings', heading: 'Settings' },
+  { feature: 'clinics', name: 'clinics-list', path: '/clinics', heading: 'Clinics' },
+  { feature: 'clinics', name: 'clinic-manage', path: '/clinics/01a1ec01-0000-7000-8000-00000000c001', heading: 'Santos Family Clinic', roles: ['CLINIC_MANAGER'] },
   { feature: 'admin', name: 'admin-specialties', path: '/specialties', heading: 'Specialties', roles: ['MEDICAL_ADMIN'] },
 ];
 

@@ -114,6 +114,37 @@ export async function mockApi(page: Page, { session = 'signedIn', stepUpFirst = 
     const s = specialties.find((x) => x.id === id)!;
     return r.fulfill(ok({ ...s, ...(r.request().postDataJSON() as object) }));
   });
+  const canManage = roles.some((r) => ['ADMIN', 'SUPER_ADMIN', 'CLINIC_MANAGER'].includes(r));
+  let clinic = {
+    id: '01a1ec01-0000-7000-8000-00000000c001', name: 'Santos Family Clinic', slug: 'santos-family-clinic', description: 'Family care in Makati.', status: 'ACTIVE',
+    organization: { id: 'o1', name: 'Santos Medical Group', legal_name: null, organization_type: 'CLINIC_GROUP' },
+    locations: [{
+      id: '01a1ec01-0000-7000-8000-00000000l001', name: 'Makati branch', address_line1: '12 Mabini St', address_line2: null, barangay: 'Poblacion', city: 'Makati', province: null, postal_code: '1210',
+      latitude: null, longitude: null, timezone: 'Asia/Manila', phone: '+63281234567', hospital_name: null, status: 'ACTIVE',
+      operating_hours: [{ day_of_week: 1, opens_at: '08:00', closes_at: '12:00' }, { day_of_week: 1, opens_at: '13:00', closes_at: '17:00' }],
+      services: [{ id: 'sv1', name: 'Laboratory', description: null, default_duration_minutes: 15, status: 'ACTIVE' }],
+    }],
+    holidays: [{ id: 'h1', clinic_location_id: null, date: '2026-12-25', name: 'Christmas Day', is_closed: true, special_opens_at: null, special_closes_at: null }],
+    members: [{ id: 'm1', user_id: 'u1', name: 'Cora Reyes', email: 'clinic.staff@example.test', mobile_masked: null, member_role: 'CLINIC_STAFF', clinic_location_id: null, joined_at: '2026-11-18T02:00:00Z' }],
+    abilities: { update: canManage, manage_hours: canManage, manage_staff: canManage },
+  };
+  const summary = { id: clinic.id, name: clinic.name, slug: clinic.slug, status: 'ACTIVE', organization: { id: 'o1', name: 'Santos Medical Group', organization_type: 'CLINIC_GROUP' }, location_count: 1, cities: ['Makati'] };
+  await page.route(/\/api\/v1\/admin\/clinics(\?.*)?$/, (r) => r.request().method() === 'POST'
+    ? r.fulfill(json(201, { success: true, data: { ...clinic, id: 'new-clinic' }, meta: {}, message: null }))
+    : r.fulfill(ok([summary], { page: 1, per_page: 100, total: 1, last_page: 1 })));
+  await page.route('**/api/v1/me/clinics', (r) => r.fulfill(ok([summary])));
+  await page.route(/\/api\/v1\/clinics\/[^/]+\/management$/, (r) => r.fulfill(ok(clinic)));
+  await page.route(/\/api\/v1\/clinics\/[^/]+\/locations\/[^/]+\/operating-hours$/, (r) => {
+    const body = r.request().postDataJSON() as { hours: typeof clinic.locations[0]['operating_hours'] };
+    clinic = { ...clinic, locations: [{ ...clinic.locations[0], operating_hours: body.hours }] };
+    return r.fulfill(ok(clinic));
+  });
+  await page.route(/\/api\/v1\/clinics\/[^/]+\/members$/, (r) => {
+    const body = r.request().postDataJSON() as { email: string; member_role: string };
+    if (body.email === 'nobody@example.test') return r.fulfill(fail(422, 'VALIDATION_FAILED', 'Validation failed', { email: ['No active MediConnect account uses this address. Ask the person to create an account first.'] }));
+    clinic = { ...clinic, members: [...clinic.members, { id: 'm2', user_id: 'u2', name: 'Dan Lim', email: body.email, mobile_masked: null, member_role: body.member_role, clinic_location_id: null, joined_at: '2026-11-19T02:00:00Z' }] };
+    return r.fulfill(json(201, { success: true, data: clinic, meta: {}, message: null }));
+  });
   await page.route(/\/api\/v1\/admin\/settings$/, (r) => r.fulfill(ok([{ key: 'booking.max_days_ahead', value: 60, updated_by: admin.id, updated_at: '2026-11-18T03:00:00Z' }])));
   await page.route(/\/api\/v1\/admin\/settings\/[^/]+$/, (r) => {
     if (needsStepUp(r)) return;

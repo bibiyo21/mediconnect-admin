@@ -25,7 +25,7 @@
 .console { min-height: 100vh; background: var(--color-background); }
 .console__header { position: sticky; top: 0; z-index: var(--z-sticky); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-6); padding: var(--space-2) var(--space-6); background: var(--color-surface); border-bottom: var(--size-hairline) solid var(--color-border); }
 .console__brand { font-weight: var(--font-weight-heading); color: var(--color-primary); }
-.console__nav { display: flex; flex-wrap: wrap; gap: var(--space-1); flex: 1; }
+.console__nav { display: flex; flex-wrap: wrap; gap: var(--space-1); flex: 1; min-width: 0; }
 .console__account { display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-small); }
 .console__main { max-width: var(--size-content-max); margin: 0 auto; padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); }
 .nav-link { display: inline-flex; align-items: center; min-height: var(--size-touch-target); padding: 0 var(--space-3); border-radius: var(--radius-md); color: var(--color-text-secondary); text-decoration: none; font-weight: var(--font-weight-label); border-bottom: 2px solid transparent; }
@@ -93,6 +93,9 @@
 .settings-list p { margin: 0; }
 .badges { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .row-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.hours { border: var(--size-hairline) solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+.hours legend { font-weight: var(--font-weight-label); padding: 0 var(--space-1); }
+.hours__row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); align-items: end; }
 details > summary { cursor: pointer; min-height: var(--size-touch-target); display: flex; align-items: center; font-weight: var(--font-weight-label); color: var(--color-primary); }
 
 /* States */
@@ -109,7 +112,8 @@ details > summary { cursor: pointer; min-height: var(--size-touch-target); displ
 @media (max-width: 640px) {
   .console__header { flex-direction: column; align-items: stretch; gap: var(--space-1); padding: var(--space-2) var(--space-4); }
   .console__brand { padding-top: var(--space-2); }
-  .console__nav { flex-wrap: nowrap; overflow-x: auto; margin: 0 calc(-1 * var(--space-2)); }
+  /* The nav scrolls inside itself; min-width: 0 stops it widening the page. */
+  .console__nav { flex-wrap: nowrap; overflow-x: auto; min-width: 0; max-width: 100%; }
   .nav-link { white-space: nowrap; }
   .console__account .btn { width: auto; }
   .console__main { padding: var(--space-4); }

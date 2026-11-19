@@ -1,11 +1,21 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { Card, PageHeader, StateMessage } from '@/components/ui';
 import { api, unwrap, userMessage } from '@/lib/api';
+import { ADMIN_ROLES, hasRole, useSession } from '@/lib/session';
 import { useLoad } from '@/lib/useLoad';
 
 export default function Overview() {
-  const { data, error, loading, reload } = useLoad(async () => unwrap(await api.GET('/admin/overview')), []);
+  const router = useRouter();
+  const { account } = useSession();
+  const isAdmin = hasRole(account, ...ADMIN_ROLES);
+  // Clinic managers and staff work inside their clinics; send them there.
+  useEffect(() => {
+    if (account && !isAdmin) router.replace('/clinics');
+  }, [account, isAdmin, router]);
+  const { data, error, loading, reload } = useLoad(async () => (isAdmin ? unwrap(await api.GET('/admin/overview')) : null), [isAdmin]);
 
   return (
     <>

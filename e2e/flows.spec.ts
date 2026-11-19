@@ -130,3 +130,62 @@ test('an ADMIN has no Specialties entry in the navigation', async ({ page }) => 
   await expect(page.getByRole('link', { name: 'Overview' })).toBeVisible({ timeout: 60_000 });
   await expect(page.getByRole('link', { name: 'Specialties' })).toHaveCount(0);
 });
+
+test('a clinic manager lands on their clinics, edits weekly hours and adds staff', async ({ page }) => {
+  await mockApi(page, { roles: ['CLINIC_MANAGER'] });
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/clinics$/, { timeout: 60_000 });
+  await expect(page.getByText('The clinics you work at.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Users' })).toHaveCount(0);
+  await page.getByRole('link', { name: 'Santos Family Clinic' }).click();
+
+  await expect(page.getByText('Mon 08:00–12:00, 13:00–17:00')).toBeVisible();
+  await page.getByRole('button', { name: 'Edit hours for Makati branch' }).click();
+  await page.getByRole('button', { name: 'Add hours' }).click();
+  const rows = page.locator('.hours__row');
+  await rows.nth(2).getByLabel('Day', { exact: true }).selectOption('6');
+  await rows.nth(2).getByLabel('Opens', { exact: true }).fill('09:00');
+  await rows.nth(2).getByLabel('Closes', { exact: true }).fill('12:00');
+  const put = page.waitForRequest((r) => r.method() === 'PUT');
+  await page.getByRole('button', { name: 'Save hours' }).click();
+  expect(((await put).postDataJSON() as { hours: unknown[] }).hours).toEqual([
+    { day_of_week: 1, opens_at: '08:00', closes_at: '12:00' },
+    { day_of_week: 1, opens_at: '13:00', closes_at: '17:00' },
+    { day_of_week: 6, opens_at: '09:00', closes_at: '12:00' },
+  ]);
+  await expect(page.getByText('Hours saved for Makati branch.')).toBeVisible();
+
+  await page.getByLabel('Email of their MediConnect account').fill('nobody@example.test');
+  await page.getByRole('button', { name: 'Add staff member' }).click();
+  await expect(page.getByText(/No active MediConnect account uses this address/)).toBeVisible();
+  await page.getByLabel('Email of their MediConnect account').fill('dan.lim@example.test');
+  await page.getByLabel('Role', { exact: true }).selectOption('CLINIC_MANAGER');
+  await page.getByRole('button', { name: 'Add staff member' }).click();
+  await expect(page.getByText('Dan Lim')).toBeVisible();
+});
+
+test('clinic staff see the clinic read-only', async ({ page }) => {
+  await mockApi(page, { roles: ['CLINIC_STAFF'] });
+  await page.goto('/clinics/01a1ec01-0000-7000-8000-00000000c001');
+  await expect(page.getByText('You can view this clinic. Changes are made by its managers.')).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole('button', { name: /Edit hours/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Add staff member' })).toHaveCount(0);
+});
+
+test('an ADMIN adds a clinic with its organization and first location', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/clinics');
+  await page.getByRole('button', { name: 'Add a clinic' }).click({ timeout: 60_000 });
+  await page.getByLabel('Organization name').fill('Reyes Health');
+  await page.getByLabel('Clinic name').fill('Reyes Clinic');
+  await page.getByLabel('First location name').fill('Quezon City branch');
+  await page.getByLabel('Street address').fill('5 Kalayaan Ave');
+  await page.getByLabel('City').fill('Quezon City');
+  const post = page.waitForRequest((r) => r.url().endsWith('/api/v1/admin/clinics') && r.method() === 'POST');
+  await page.getByRole('button', { name: 'Create clinic' }).click();
+  expect((await post).postDataJSON()).toEqual({
+    organization: { name: 'Reyes Health', organization_type: 'CLINIC_GROUP' },
+    name: 'Reyes Clinic',
+    location: { name: 'Quezon City branch', address_line1: '5 Kalayaan Ave', city: 'Quezon City', phone: null },
+  });
+});
