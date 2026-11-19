@@ -10,6 +10,7 @@ import { Button, StateMessage } from './ui';
 const NAV = [
   { href: '/', label: 'Overview', roles: ['SUPER_ADMIN', 'ADMIN', 'MEDICAL_ADMIN', 'SUPPORT_AGENT'] },
   { href: '/users', label: 'Users', roles: ['SUPER_ADMIN', 'ADMIN', 'MEDICAL_ADMIN', 'SUPPORT_AGENT'] },
+  { href: '/specialties', label: 'Specialties', roles: ['SUPER_ADMIN', 'MEDICAL_ADMIN'] },
   { href: '/audit-logs', label: 'Audit logs', roles: ['SUPER_ADMIN', 'ADMIN', 'MEDICAL_ADMIN'] },
   { href: '/settings', label: 'Settings', roles: ['SUPER_ADMIN', 'ADMIN'] },
 ];

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { axeViolations, expectNoHorizontalScroll, mockApi, users } from './helpers';
 
-const pages = [
+const pages: { path: string; heading: string; session?: 'signedIn' | 'signedOut' | 'mfaSetup'; roles?: string[] }[] = [
   { path: '/sign-in', heading: 'MediConnect Console', session: 'signedOut' as const },
   { path: '/mfa/setup', heading: 'Set up two-step verification', session: 'mfaSetup' as const },
   { path: '/', heading: 'Overview' },
@@ -9,12 +9,13 @@ const pages = [
   { path: `/users/${users[0].id}`, heading: 'Ana Santos' },
   { path: '/audit-logs', heading: 'Audit logs' },
   { path: '/settings', heading: 'Settings' },
+  { path: '/specialties', heading: 'Specialties', roles: ['MEDICAL_ADMIN'] },
 ];
 
 for (const p of pages) {
   test.describe(p.path, () => {
     test.beforeEach(async ({ page }) => {
-      await mockApi(page, { session: p.session ?? 'signedIn' });
+      await mockApi(page, { session: p.session ?? 'signedIn', roles: p.roles });
       await page.goto(p.path);
       await expect(page.getByRole('heading', { level: 1, name: p.heading })).toBeVisible({ timeout: 60_000 });
     });

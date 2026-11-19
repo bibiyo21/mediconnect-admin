@@ -34,8 +34,9 @@ type Session = 'signedIn' | 'signedOut' | 'mfaSetup';
  * cookie sessions; /auth/me tells it who is signed in).
  * `stepUpFirst`: sensitive admin calls answer STEP_UP_REQUIRED until /auth/mfa/step-up succeeds.
  */
-export async function mockApi(page: Page, { session = 'signedIn', stepUpFirst = false }: { session?: Session; stepUpFirst?: boolean } = {}) {
+export async function mockApi(page: Page, { session = 'signedIn', stepUpFirst = false, roles = ['ADMIN'] }: { session?: Session; stepUpFirst?: boolean; roles?: string[] } = {}) {
   let state: Session = session;
+  const me = { ...admin, roles };
   let steppedUp = !stepUpFirst;
   const needsStepUp = (route: Route) => {
     if (steppedUp) return false;
@@ -45,7 +46,7 @@ export async function mockApi(page: Page, { session = 'signedIn', stepUpFirst = 
 
   await page.route('**/sanctum/csrf-cookie', (r) => r.fulfill({ status: 204 }));
   await page.route('**/api/v1/auth/me', (r) =>
-    state === 'signedIn' ? r.fulfill(ok(admin)) : state === 'mfaSetup' ? r.fulfill(fail(401, 'MFA_REQUIRED', 'Set up two-step verification.')) : r.fulfill(fail(401, 'UNAUTHENTICATED', 'Unauthenticated.')),
+    state === 'signedIn' ? r.fulfill(ok(me)) : state === 'mfaSetup' ? r.fulfill(fail(401, 'MFA_REQUIRED', 'Set up two-step verification.')) : r.fulfill(fail(401, 'UNAUTHENTICATED', 'Unauthenticated.')),
   );
   await page.route('**/api/v1/auth/login', (r) => {
     const body = r.request().postDataJSON() as { password: string };
@@ -96,6 +97,23 @@ export async function mockApi(page: Page, { session = 'signedIn', stepUpFirst = 
       { id: 1, occurred_at: '2026-11-18T02:00:00Z', actor_user_id: null, actor_roles: null, action: 'rbac.role_assigned', subject_type: 'user', subject_id: users[2].id, changes: { role: 'CLINIC_STAFF' }, is_access_event: false, request_id: null },
     ], { page: 1, per_page: 50, total: 2, last_page: 1 })),
   );
+  const specialties = [
+    { id: '01a1ec01-0000-7000-8000-00000000s001', name: 'Cardiology', slug: 'cardiology', synonyms: ['cardiologist', 'heart doctor'], is_active: true, review_status: 'PENDING_REVIEW', subspecialties: [{ id: '01a1ec01-0000-7000-8000-00000000u001', name: 'Interventional Cardiology', slug: 'interventional-cardiology', is_active: true }] },
+    { id: '01a1ec01-0000-7000-8000-00000000s002', name: 'Pediatrics', slug: 'pediatrics', synonyms: ['pediatrician', 'pedia'], is_active: true, review_status: 'REVIEWED', subspecialties: [] },
+    { id: '01a1ec01-0000-7000-8000-00000000s003', name: 'Radiology', slug: 'radiology', synonyms: [], is_active: false, review_status: 'REVIEWED', subspecialties: [] },
+  ];
+  await page.route(/\/api\/v1\/admin\/specialties$/, (r) => {
+    if (r.request().method() === 'POST') {
+      const body = r.request().postDataJSON() as { name: string; synonyms: string[] };
+      return r.fulfill(json(201, { success: true, data: { id: 'new', name: body.name, slug: body.name.toLowerCase(), synonyms: body.synonyms, is_active: true, review_status: 'REVIEWED', subspecialties: [] }, meta: {}, message: null }));
+    }
+    return r.fulfill(ok(specialties));
+  });
+  await page.route(/\/api\/v1\/admin\/specialties\/[^/]+$/, (r) => {
+    const id = r.request().url().split('/').pop();
+    const s = specialties.find((x) => x.id === id)!;
+    return r.fulfill(ok({ ...s, ...(r.request().postDataJSON() as object) }));
+  });
   await page.route(/\/api\/v1\/admin\/settings$/, (r) => r.fulfill(ok([{ key: 'booking.max_days_ahead', value: 60, updated_by: admin.id, updated_at: '2026-11-18T03:00:00Z' }])));
   await page.route(/\/api\/v1\/admin\/settings\/[^/]+$/, (r) => {
     if (needsStepUp(r)) return;

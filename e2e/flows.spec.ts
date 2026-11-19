@@ -105,3 +105,28 @@ test('sign out returns to the sign-in page', async ({ page }) => {
   await page.getByRole('button', { name: 'Sign out' }).click({ timeout: 60_000 });
   await expect(page).toHaveURL(/\/sign-in$/);
 });
+
+test('specialties: medical admins see pending entries, add one, and mark one reviewed', async ({ page }) => {
+  await mockApi(page, { roles: ['MEDICAL_ADMIN'] });
+  await page.goto('/specialties');
+  await expect(page.getByText('1 seeded entry is waiting for medical review.', { exact: false })).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole('link', { name: 'Specialties' })).toHaveAttribute('aria-current', 'page');
+
+  await page.getByLabel('Name', { exact: true }).fill('Sports Medicine');
+  await page.getByLabel('Synonyms (comma-separated)').first().fill('sports doctor, sports physician');
+  const create = page.waitForRequest((r) => r.url().endsWith('/api/v1/admin/specialties') && r.method() === 'POST');
+  await page.getByRole('button', { name: 'Add specialty' }).click();
+  expect((await create).postDataJSON()).toEqual({ name: 'Sports Medicine', synonyms: ['sports doctor', 'sports physician'] });
+
+  const review = page.waitForRequest((r) => r.method() === 'PATCH');
+  await page.getByRole('button', { name: 'Mark Cardiology as reviewed' }).click();
+  expect((await review).postDataJSON()).toEqual({ reviewed: true });
+  await expect(page.getByText('Cardiology marked as reviewed.')).toBeVisible();
+});
+
+test('an ADMIN has no Specialties entry in the navigation', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/');
+  await expect(page.getByRole('link', { name: 'Overview' })).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole('link', { name: 'Specialties' })).toHaveCount(0);
+});
