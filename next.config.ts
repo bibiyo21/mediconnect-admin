@@ -9,6 +9,8 @@ const turbopackAdditionalRoots = { sharedPackages: { path: sharedCheckout, ignor
 const nextConfig: NextConfig = {
   experimental: { turbopackAdditionalRoots },
   poweredByHeader: false,
+  // The dev-mode badge would cover content in screenshots and tests.
+  devIndicators: false,
   async headers() {
     return [
       {

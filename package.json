@@ -7,15 +7,21 @@
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "e2e": "playwright test",
+    "e2e:wip": "WIP_SHOTS=1 playwright test e2e/wip-shots.spec.ts --project=desktop --project=mobile",
+    "e2e:report": "playwright show-report"
   },
   "dependencies": {
+    "@mediconnect/api-client": "link:../shared/packages/api-client",
     "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@mediconnect/design-system": "link:../shared/packages/design-system",
+    "@playwright/test": "^1.65.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
