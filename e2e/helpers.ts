@@ -175,6 +175,8 @@ export async function mockApi(page: Page, { session = 'signedIn', stepUpFirst = 
     doctor = { ...doctor, onboarding_status: 'UNDER_REVIEW', verification_history: [...doctor.verification_history, { from_status: 'DOCUMENTS_SUBMITTED', to_status: 'UNDER_REVIEW', reason: null, occurred_at: '2026-11-19T03:00:00Z' }] };
     return r.fulfill(ok(doctor));
   });
+  await page.route(/\/api\/v1\/admin\/doctors\/[^/]+\/credentials\/[^/]+\/download-url$/, (r) =>
+    r.fulfill(ok({ url: 'http://localhost:8000/api/v1/doctors/credentials/test/file?signature=test', expires_at: '2026-11-19T03:05:00Z' })));
   await page.route(/\/api\/v1\/admin\/doctors\/[^/]+\/credentials\/[^/]+\/review$/, (r) => {
     const credentialId = r.request().url().split('/').at(-2);
     const { decision, note } = r.request().postDataJSON() as { decision: string; note: string | null };

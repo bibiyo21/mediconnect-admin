@@ -25,6 +25,7 @@ export default function DoctorReview() {
   const [actionError, setActionError] = useState<unknown>(null);
   const [done, setDone] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [links, setLinks] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<string[]>([]);
   const [verifyReason, setVerifyReason] = useState('');
   const [rejectReason, setRejectReason] = useState('');
@@ -58,9 +59,10 @@ export default function DoctorReview() {
     return unwrap(await api.POST('/admin/doctors/{doctorId}/start-review', { params: { path } }));
   });
 
-  const openDocument = (c: Credential) => act(`open-${c.id}`, 'The document opened in a new tab. The link works for 5 minutes.', async () => {
+  // A real link (not window.open after an await, which browsers may block as a popup).
+  const getLink = (c: Credential) => act(`open-${c.id}`, 'Download link ready. It works for 5 minutes.', async () => {
     const link = unwrap(await api.GET('/admin/doctors/{doctorId}/credentials/{credentialId}/download-url', { params: { path: { ...path, credentialId: c.id } } }));
-    window.open(link.url, '_blank', 'noopener,noreferrer');
+    setLinks((current) => ({ ...current, [c.id]: link.url }));
     return null;
   });
 
@@ -173,7 +175,11 @@ export default function DoctorReview() {
                 </div>
                 {c.review_note ? <p className="small">Note to doctor: {c.review_note}</p> : null}
                 <div className="doc__actions">
-                  <Button variant="secondary" disabled={!c.downloadable} onClick={() => void openDocument(c)} loading={busy === `open-${c.id}`}>Open document</Button>
+                  {links[c.id] ? (
+                    <a className="button-link" href={links[c.id]} download rel="noopener noreferrer">Download {CREDENTIAL_LABELS[c.credential_type] ?? 'document'}</a>
+                  ) : (
+                    <Button variant="secondary" disabled={!c.downloadable} onClick={() => void getLink(c)} loading={busy === `open-${c.id}`}>Get download link</Button>
+                  )}
                   {reviewing && c.downloadable ? (
                     <>
                       <TextField label="Note to the doctor" hint="Needed when rejecting" value={notes[c.id] ?? ''} onChange={(e) => setNotes({ ...notes, [c.id]: e.target.value })} />

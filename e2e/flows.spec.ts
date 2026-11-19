@@ -196,6 +196,10 @@ test('a medical admin reviews a doctor: start, accept the PRC ID, then verify af
   await expect(page.getByRole('heading', { level: 1, name: 'Dr. Ana Reyes' })).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText('Blocked: malware found')).toBeVisible();
 
+  await expect(page.getByRole('button', { name: 'Get download link' }).nth(1)).toBeDisabled(); // quarantined
+  await page.getByRole('button', { name: 'Get download link' }).first().click();
+  await expect(page.getByRole('link', { name: 'Download PRC ID' })).toHaveAttribute('href', /signature=/);
+
   await page.getByRole('button', { name: 'Start review' }).click();
   await expect(page.getByText('Review started. Check each document, then decide.')).toBeVisible();
   await page.getByRole('button', { name: 'Accept', exact: true }).click();
