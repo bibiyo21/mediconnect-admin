@@ -200,4 +200,22 @@ export async function mockApi(page: Page, { session = 'signedIn', stepUpFirst = 
     doctor = { ...doctor, onboarding_status: 'VERIFIED', license_verification_status: 'VERIFIED', verification_history: [...doctor.verification_history, { from_status: 'UNDER_REVIEW', to_status: 'VERIFIED', reason: null, occurred_at: '2026-11-19T03:10:00Z' }] };
     return r.fulfill(ok(doctor));
   });
+
+  // Search curation (3.4); test fixtures only.
+  let zeroResults = [{ id: 'zr1', query: 'kardyolohista', collection: 'doctors', occurrences: 7, first_seen_at: '2026-11-18T02:00:00Z', last_seen_at: '2026-11-20T01:00:00Z', status: 'NEW' }];
+  let synonymGroups = [{ id: 'sy1', synonyms: ['pediatrics', 'pediatrician', 'pedia'], root_term: null as string | null, status: 'ACTIVE', updated_at: '2026-11-20T00:00:00Z' }];
+  await page.route('**/api/v1/admin/search/overview', (r) => r.fulfill(ok({ days: 7, searches: 1240, zero_result_rate: 0.031, cache_hit_rate: 0.62, degraded_rate: 0, latency_ms: { p50: 18, p95: 64, p99: 120 }, top_queries: [{ query: 'pediatrics', searches: 210 }], open_zero_results: zeroResults.length })));
+  await page.route(/\/api\/v1\/admin\/search\/zero-results(\?.*)?$/, (r) => r.fulfill(ok(zeroResults, { page: 1, per_page: 25, total: zeroResults.length, last_page: 1 })));
+  await page.route(/\/api\/v1\/admin\/search\/zero-results\/[^/]+\/ignore$/, (r) => { zeroResults = []; return r.fulfill(ok({ status: 'IGNORED' })); });
+  await page.route(/\/api\/v1\/admin\/search\/synonyms(\?.*)?$/, (r) => {
+    if (r.request().method() === 'POST') {
+      const body = r.request().postDataJSON() as { synonyms: string[]; zero_result_id?: string };
+      const created = { id: `sy${synonymGroups.length + 1}`, synonyms: body.synonyms.map((t) => t.toLowerCase()), root_term: null, status: 'ACTIVE', updated_at: '2026-11-20T02:00:00Z' };
+      synonymGroups = [...synonymGroups, created];
+      if (body.zero_result_id) zeroResults = zeroResults.filter((z) => z.id !== body.zero_result_id);
+      return r.fulfill(json(201, { success: true, data: { ...created, synced: true }, meta: {}, message: null }));
+    }
+    return r.fulfill(ok(synonymGroups));
+  });
+  await page.route(/\/api\/v1\/admin\/search\/synonyms\/[^/]+$/, (r) => { synonymGroups = synonymGroups.filter((s) => !r.request().url().endsWith(s.id)); return r.fulfill(ok({ status: 'INACTIVE' })); });
 }

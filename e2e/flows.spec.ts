@@ -229,3 +229,17 @@ test('a clinic manager invites a doctor by licence number', async ({ page }) => 
   await expect(page.getByText('Invitation sent to Dr. Ben Cruz.', { exact: false })).toBeVisible();
   await expect(page.getByText('Invitation sent', { exact: true })).toBeVisible();
 });
+
+test('a medical admin turns a zero-result query into a synonym', async ({ page }) => {
+  await mockApi(page, { roles: ['MEDICAL_ADMIN'] });
+  await page.goto('/search');
+  await expect(page.getByText('“kardyolohista”')).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText('18 / 64 / 120 ms')).toBeVisible();
+
+  const request = page.waitForRequest((r) => r.url().endsWith('/admin/search/synonyms') && r.method() === 'POST');
+  await page.getByLabel('Same meaning as "kardyolohista"').fill('cardiology, cardiologist');
+  await page.getByRole('button', { name: 'Add synonym' }).click();
+  expect((await request).postDataJSON()).toMatchObject({ synonyms: ['kardyolohista', 'cardiology', 'cardiologist'], zero_result_id: 'zr1' });
+  await expect(page.getByText('Synonym added for "kardyolohista".', { exact: false })).toBeVisible();
+  await expect(page.getByText('Nothing waiting.', { exact: false })).toBeVisible();
+});

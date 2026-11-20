@@ -13,6 +13,7 @@ const NAV = [
   { href: '/clinics', label: 'Clinics', roles: ['SUPER_ADMIN', 'ADMIN', 'CLINIC_MANAGER', 'CLINIC_STAFF'] },
   { href: '/doctors', label: 'Doctors', roles: ['SUPER_ADMIN', 'MEDICAL_ADMIN'] },
   { href: '/specialties', label: 'Specialties', roles: ['SUPER_ADMIN', 'MEDICAL_ADMIN'] },
+  { href: '/search', label: 'Search', roles: ['SUPER_ADMIN', 'ADMIN', 'MEDICAL_ADMIN'] },
   { href: '/audit-logs', label: 'Audit logs', roles: ['SUPER_ADMIN', 'ADMIN', 'MEDICAL_ADMIN'] },
   { href: '/settings', label: 'Settings', roles: ['SUPER_ADMIN', 'ADMIN'] },
 ];
